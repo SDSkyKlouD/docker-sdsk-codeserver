@@ -1,0 +1,6 @@
+{
+    "editor.fontFamily": "\"Noto Sans Mono CJK KR\", \"Noto Sans Mono CJK\", \"Noto Sans Mono\", \"D2Coding\", \"NanumGothicCoding\", monospace",
+    "terminal.integrated.cwd": "/home/coder/projects",
+    "editor.mouseWheelZoom": true,
+    "git.autofetch": true
+}
