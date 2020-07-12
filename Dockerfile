@@ -1,5 +1,6 @@
 ### docker-sdsk-codeserver
 ### code-server Docker image (customized by/for SD SkyKlouD)
+## Dockerfile referenced from https://github.com/monostream/code-server
 
 # Based on latest Ubuntu LTS
 FROM ubuntu:latest
@@ -12,6 +13,7 @@ RUN apt-get update -y; \
 # Install common packages
 RUN apt-get install --no-install-recommends -y \
     bash \
+    tar \
     ca-certificates \
     curl \
     wget \
@@ -22,7 +24,6 @@ RUN apt-get install --no-install-recommends -y \
     gpg \
     apt-transport-https \
     openssl \
-    bsdtar \
     locales \
     net-tools \
     util-linux
@@ -79,11 +80,13 @@ ENV VSCODE_USER "~/.local/share/code-server/User"
 ENV VSCODE_EXTENSIONS "~/.local/share/code-server/extensions"
 RUN mkdir -p ${VSCODE_USER}
 COPY --chown=coder:coder settings.json ~/.local/share/code-server/User/
+RUN code-server --install-extension ms-ceintl.vscode-language-pack-ko
 
+# FINAL
 EXPOSE 8080
 
 ENTRYPOINT ["dumb-init", "--"]
-CMd ["code-server", "/home/coder/projects", "--bind-addr=0.0.0.0:8080", "--disable-telemetry"]
+CMD ["code-server", "/home/coder/projects", "--bind-addr=0.0.0.0:8080", "--disable-telemetry"]
 
 
 ### BIND
