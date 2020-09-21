@@ -111,7 +111,7 @@ RUN code-server --install-extension eamodio.gitlens
 # FINAL
 EXPOSE 8080
 
-ENTRYPOINT ["dumb-init", "fixuid", "-q", "/usr/bin/code-server", "/home/coder/projects", "--bind-addr=0.0.0.0:8080", "--disable-telemetry"]
+ENTRYPOINT ["dumb-init", "/usr/bin/code-server", "/home/coder/projects", "--bind-addr=0.0.0.0:8080", "--disable-telemetry"]
 
 
 ### BIND
