@@ -59,11 +59,11 @@ RUN apt-get install --no-install-recommends -y \
     dotnet-sdk-3.1
 
 # Install Node.js LTS
-RUN curl -sL https://deb.nodesource.com/setup_lts.x | bash -; \
-    apt-get update -y
+#RUN curl -sL https://deb.nodesource.com/setup_lts.x | bash -; \
+#    apt-get update -y
 
-RUN apt-get install --no-install-recommends -y \
-    nodejs
+#RUN apt-get install --no-install-recommends -y \
+#    nodejs
 
 # APT & /tmp cleanup
 RUN apt-get clean -y && rm -rf /var/lib/apt/lists/*
@@ -99,6 +99,12 @@ ENV CODE_EXTENSIONS="~/.local/share/code-server/extensions"
 RUN mkdir -p ${CODE_USER}
 COPY --chown=coder:coder settings.json ${CODE_USER}/
 
+# Install Node.js LTS using NVM
+RUN curl -o- "https://raw.githubusercontent.com/nvm-sh/nvm/master/install.sh" | bash \
+    && export NVM_DIR="$HOME/.nvm" \
+    && [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh" \
+    && nvm install --lts --latest-npm
+
 # Install extensions (meaningless when bind directory)
 RUN code-server --install-extension ms-ceintl.vscode-language-pack-ko
 RUN code-server --install-extension pkief.material-icon-theme
@@ -111,7 +117,7 @@ RUN code-server --install-extension eamodio.gitlens
 # FINAL
 EXPOSE 8080
 
-ENTRYPOINT ["dumb-init", "/usr/bin/code-server", "/home/coder/projects", "--bind-addr=0.0.0.0:8080", "--disable-telemetry"]
+ENTRYPOINT ["dumb-init", "/usr/bin/code-server", "/home/coder/projects", "--bind-addr=0.0.0.0:8080", "--disable-telemetry", "--user-data-dir=${CODE_USER}", "--extensions-dir=${CODE_EXTENSIONS}"]
 
 
 ### BIND
