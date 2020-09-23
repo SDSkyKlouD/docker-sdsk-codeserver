@@ -91,11 +91,11 @@ RUN chown -R coder:coder ~/
 RUN mkdir -p ~/projects
 
 ENV DOTNET_CLI_TELEMETRY_OPTOUT=1
+ENV DISABLE_TELEMETRY=true
 ENV PATH="${PATH}:/usr/share/dotnet"
 
-ENV DISABLE_TELEMETRY=true
-ENV CODE_USER="~/.local/share/code-server/User"
-ENV CODE_EXTENSIONS="~/.local/share/code-server/extensions"
+ENV CODE_USER="/home/coder/.local/share/code-server/User"
+ENV CODE_EXTENSIONS="/home/coder/.local/share/code-server/extensions"
 RUN mkdir -p ${CODE_USER}
 COPY --chown=coder:coder settings.json ${CODE_USER}/
 
