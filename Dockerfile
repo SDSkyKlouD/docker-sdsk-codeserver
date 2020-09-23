@@ -65,10 +65,6 @@ RUN apt-get install --no-install-recommends -y \
 #RUN apt-get install --no-install-recommends -y \
 #    nodejs
 
-# APT & /tmp cleanup
-RUN apt-get clean -y && rm -rf /var/lib/apt/lists/*
-RUN rm -rf /tmp/*
-
 # Install code-server
 RUN localedef -i en_US -c -f UTF-8 -A /usr/share/locale/locale.alias en_US.UTF-8
 RUN localedef -i ko_KR -c -f UTF-8 -A /usr/share/locale/locale.alias ko_KR.UTF-8
@@ -87,7 +83,6 @@ RUN groupadd -r coder; \
     echo "coder ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers.d/nopasswd
 USER coder
 WORKDIR /home/coder
-RUN sudo chown -R coder:coder ~/
 RUN mkdir -p ~/projects
 
 ENV DOTNET_CLI_TELEMETRY_OPTOUT=1
@@ -114,11 +109,24 @@ RUN code-server --install-extension ms-vscode.typescript-javascript-grammar
 RUN code-server --install-extension christian-kohler.npm-intellisense
 RUN code-server --install-extension eamodio.gitlens
 
+# APT & /tmp cleanup
+RUN sudo apt-get clean -y && sudo rm -rf /var/lib/apt/lists/*
+RUN sudo rm -rf /tmp/*
+
 # FINAL
+RUN sudo chown -R coder:coder /home/coder
+
 EXPOSE 8080
 
-ENTRYPOINT ["/usr/bin/dumb-init", "--"]
-CMD        ["/usr/bin/code-server", "/home/coder/projects", "--bind-addr=0.0.0.0:8080", "--disable-telemetry", "--user-data-dir=${CODE_USER}", "--extensions-dir=${CODE_EXTENSIONS}"]
+ENTRYPOINT [ "/usr/bin/dumb-init", "--" ]
+CMD        [ "/usr/bin/code-server",                                           \
+                "/home/coder/projects",                                        \
+                "--bind-addr=0.0.0.0:8080",                                    \
+                "--disable-telemetry",                                         \
+                "--user-data-dir=/home/coder/.local/share/code-server/User",   \
+                "--extensions-dir=/home/coder/.local/share/code-server/extensions" ]
+# "--config=/home/coder/.config/code-server/config.yml"          \
+# HARD-CODED config & user-data-dir & extensions-dir
 
 ### BIND
 # (required) [host project folder] -> /home/coder/projects
