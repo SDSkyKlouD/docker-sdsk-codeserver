@@ -87,7 +87,7 @@ RUN groupadd -r coder; \
     echo "coder ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers.d/nopasswd
 USER coder
 WORKDIR /home/coder
-RUN chown -R coder:coder ~/
+RUN sudo chown -R coder:coder ~/
 RUN mkdir -p ~/projects
 
 ENV DOTNET_CLI_TELEMETRY_OPTOUT=1
@@ -117,8 +117,8 @@ RUN code-server --install-extension eamodio.gitlens
 # FINAL
 EXPOSE 8080
 
-ENTRYPOINT ["dumb-init", "/usr/bin/code-server", "/home/coder/projects", "--bind-addr=0.0.0.0:8080", "--disable-telemetry", "--user-data-dir=${CODE_USER}", "--extensions-dir=${CODE_EXTENSIONS}"]
-
+ENTRYPOINT ["/usr/bin/dumb-init", "--"]
+CMD        ["/usr/bin/code-server", "/home/coder/projects", "--bind-addr=0.0.0.0:8080", "--disable-telemetry", "--user-data-dir=${CODE_USER}", "--extensions-dir=${CODE_EXTENSIONS}"]
 
 ### BIND
 # (required) [host project folder] -> /home/coder/projects
