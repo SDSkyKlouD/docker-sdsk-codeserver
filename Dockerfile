@@ -37,6 +37,8 @@ RUN apt-get install --no-install-recommends -y \
     pkg-config \
     lsb-release \
     tzdata
+RUN localedef -i en_US -c -f UTF-8 -A /usr/share/locale/locale.alias en_US.UTF-8
+RUN localedef -i ko_KR -c -f UTF-8 -A /usr/share/locale/locale.alias ko_KR.UTF-8
 
 # Install Python
 RUN apt-get install --no-install-recommends -y \
@@ -66,10 +68,6 @@ RUN apt-get install --no-install-recommends -y \
 #    nodejs
 
 # Install code-server
-RUN localedef -i en_US -c -f UTF-8 -A /usr/share/locale/locale.alias en_US.UTF-8
-RUN localedef -i ko_KR -c -f UTF-8 -A /usr/share/locale/locale.alias ko_KR.UTF-8
-ENV LANG=ko_KR.utf8
-
 RUN \
     CODE_VERSION=$(curl -sL https://api.github.com/repos/cdr/code-server/releases/latest | grep '"name"' | head -1 | awk -F '[:]' '{print $2}' | sed -e 's/"//g' | sed -e 's/,//g' | sed -e 's/ //g' | sed -e 's/\r//g') \
     && CODE_VERSION_WITHOUT_V=$(echo $CODE_VERSION | sed -e 's/v//g') \
@@ -77,20 +75,40 @@ RUN \
     && mv /usr/local/bin/code-server-${CODE_VERSION_WITHOUT_V}-linux-amd64 /usr/local/bin/code-server \
     && ln -s /usr/local/bin/code-server/bin/code-server /usr/bin/code-server
 
+# Install fixuid
+RUN \
+    FIXUID_VERSION=$(curl -sL https://api.github.com/repos/boxboat/fixuid/releases/latest | grep '"name"' | head -1 | awk -F '[:]' '{print $2}' | sed -e 's/"//g' | sed -e 's/,//g' | sed -e 's/ //g' | sed -e 's/\r//g') \
+    && FIXUID_VERSION_WITHOUT_V=$(echo $FIXUID_VERSION | sed -e 's/v//g') \
+    && USER=coder \
+    && GROUP=coder \
+    && curl -fsL "https://github.com/boxboat/fixuid/releases/download/${FIXUID_VERSION}/fixuid-${FIXUID_VERSION_WITHOUT_V}-linux-amd64.tar.gz" | tar -zx -C /usr/local/bin \
+    && chown root:root /usr/local/bin/fixuid \
+    && chmod 4755 /usr/local/bin/fixuid \
+    && ln -s /usr/local/bin/fixuid /usr/bin/fixuid \
+    && mkdir -p /etc/fixuid \
+    && printf "user: $USER\ngroup: $GROUP\n" > /etc/fixuid/config.yml
+
+# Install entrypoint.sh
+COPY entrypoint.sh /usr/bin/entrypoint.sh
+RUN chmod +x /usr/bin/entrypoint.sh
+
 # Setup code-server
-RUN groupadd -r coder; \
-    useradd -m -r coder -g coder -s /bin/bash; \
-    echo "coder ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers.d/nopasswd
-USER coder
+RUN addgroup --gid 1000 coder \
+    && adduser --uid 1000 --ingroup coder --home /home/coder --shell /bin/bash --disabled-password --gecos "" coder \
+    && echo "coder ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers.d/nopasswd
+USER coder:coder
 WORKDIR /home/coder
 RUN mkdir -p ~/projects
+
+ENV LANG=ko_KR.utf8
 
 ENV DOTNET_CLI_TELEMETRY_OPTOUT=1
 ENV DISABLE_TELEMETRY=true
 ENV PATH="${PATH}:/usr/share/dotnet"
 
-ENV CODE_USER="/home/coder/.local/share/code-server/User"
-ENV CODE_EXTENSIONS="/home/coder/.local/share/code-server/extensions"
+ENV CODE_DATA="/home/coder/.local/share/code-server"
+ENV CODE_USER="${CODE_DATA}/User"
+ENV CODE_EXTENSIONS="${CODE_DATA}/extensions"
 RUN mkdir -p ${CODE_USER}
 COPY --chown=coder:coder settings.json ${CODE_USER}/
 
@@ -101,13 +119,13 @@ RUN curl -o- "https://raw.githubusercontent.com/nvm-sh/nvm/master/install.sh" | 
     && nvm install --lts --latest-npm
 
 # Install extensions (meaningless when bind directory)
-RUN code-server --install-extension ms-ceintl.vscode-language-pack-ko
-RUN code-server --install-extension pkief.material-icon-theme
-RUN code-server --install-extension ms-dotnettools.csharp
-RUN code-server --install-extension ms-python.python
-RUN code-server --install-extension ms-vscode.typescript-javascript-grammar
-RUN code-server --install-extension christian-kohler.npm-intellisense
-RUN code-server --install-extension eamodio.gitlens
+#RUN code-server --install-extension ms-ceintl.vscode-language-pack-ko
+#RUN code-server --install-extension pkief.material-icon-theme
+#RUN code-server --install-extension ms-dotnettools.csharp
+#RUN code-server --install-extension ms-python.python
+#RUN code-server --install-extension ms-vscode.typescript-javascript-grammar
+#RUN code-server --install-extension christian-kohler.npm-intellisense
+#RUN code-server --install-extension eamodio.gitlens
 
 # APT & /tmp cleanup
 RUN sudo apt-get clean -y && sudo rm -rf /var/lib/apt/lists/*
@@ -118,15 +136,13 @@ RUN sudo chown -R coder:coder /home/coder
 
 EXPOSE 8080
 
-ENTRYPOINT [ "/usr/bin/dumb-init", "--" ]
-CMD        [ "/usr/bin/code-server",                                           \
-                "/home/coder/projects",                                        \
-                "--bind-addr=0.0.0.0:8080",                                    \
-                "--disable-telemetry",                                         \
-                "--user-data-dir=/home/coder/.local/share/code-server/User",   \
-                "--extensions-dir=/home/coder/.local/share/code-server/extensions" ]
-# "--config=/home/coder/.config/code-server/config.yml"          \
-# HARD-CODED config & user-data-dir & extensions-dir
+ENTRYPOINT ["/usr/bin/entrypoint.sh",        \
+                "/home/coder/projects",      \
+                "--bind-addr=0.0.0.0:8080",  \
+                "--disable-telemetry",       \
+                "--user-data-dir={0}",       \
+                "--extensions-dir={1}"]
+# {0] will be replaced to $CODE_DATA, {1} will be replaced to $CODE_EXTENSIONS in entrypoint.sh
 
 ### BIND
 # (required) [host project folder] -> /home/coder/projects
