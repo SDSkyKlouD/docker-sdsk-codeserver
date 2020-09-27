@@ -33,6 +33,7 @@ RUN apt-get install --no-install-recommends -y \
     gpg-agent \
     apt-transport-https \
     openssl \
+    openssh-client \
     locales \
     util-linux \
     pkg-config \
