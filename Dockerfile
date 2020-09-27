@@ -20,6 +20,7 @@ RUN apt-get install --no-install-recommends -y \
     bash \
     tar \
     ca-certificates \
+    nano \
     curl \
     wget \
     dumb-init \
