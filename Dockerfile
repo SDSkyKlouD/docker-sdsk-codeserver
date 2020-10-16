@@ -136,7 +136,12 @@ RUN sudo rm -rf /tmp/*
 # FINAL
 RUN sudo chown -R coder:coder /home/coder
 
+# EXPOSE CODE-SERVER APP PORT
 EXPOSE 8080
+
+# EXPOSE DEVELOPMENT SERVER PORTS RUNNING IN CONTAINER
+EXPOSE 30000-30005
+
 
 ENTRYPOINT ["/usr/bin/entrypoint.sh",        \
                 "/home/coder/projects",      \
