@@ -17,6 +17,7 @@ RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 # Install common packages
 RUN apt-get install --no-install-recommends -y \
     apt-utils \
+    software-properties-common \
     bash \
     tar \
     ca-certificates \
