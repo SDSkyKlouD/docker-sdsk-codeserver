@@ -129,6 +129,7 @@ RUN curl -o- "https://raw.githubusercontent.com/nvm-sh/nvm/master/install.sh" | 
 #RUN code-server --install-extension ms-vscode.typescript-javascript-grammar
 #RUN code-server --install-extension christian-kohler.npm-intellisense
 #RUN code-server --install-extension eamodio.gitlens
+#RUN code-server --install-extension ritwickdey.liveserver
 
 # APT & /tmp cleanup
 RUN sudo apt-get clean -y && sudo rm -rf /var/lib/apt/lists/*
