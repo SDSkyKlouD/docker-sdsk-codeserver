@@ -61,7 +61,7 @@ RUN wget "https://packages.microsoft.com/config/ubuntu/$(lsb_release -rs)/packag
     apt-get update -y
 
 RUN apt-get install --no-install-recommends -y \
-    dotnet-sdk-3.1
+    dotnet-sdk-5.0
 
 # Install Node.js LTS
 #RUN curl -sL https://deb.nodesource.com/setup_lts.x | bash -; \
