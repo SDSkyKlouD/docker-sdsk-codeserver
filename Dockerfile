@@ -5,6 +5,7 @@
 # Based on latest Ubuntu LTS
 FROM ubuntu:latest
 
+
 # Upgrade existing packages
 RUN apt-get update -y; \
     apt-get install -f -y; \
@@ -30,6 +31,8 @@ RUN apt-get install --no-install-recommends -y \
     make \
     sudo \
     build-essential \
+    gcc-10 \
+    cpp-10 \
     gpg \
     gpg-agent \
     apt-transport-https \
@@ -40,8 +43,10 @@ RUN apt-get install --no-install-recommends -y \
     pkg-config \
     lsb-release \
     tzdata
-RUN localedef -i en_US -c -f UTF-8 -A /usr/share/locale/locale.alias en_US.UTF-8
-RUN localedef -i ko_KR -c -f UTF-8 -A /usr/share/locale/locale.alias ko_KR.UTF-8
+
+# Register locales
+RUN localedef -i en_US -c -f UTF-8 -A /usr/share/locale/locale.alias en_US.UTF-8; \
+    localedef -i ko_KR -c -f UTF-8 -A /usr/share/locale/locale.alias ko_KR.UTF-8
 
 # Install Python
 RUN apt-get install --no-install-recommends -y \
@@ -58,10 +63,8 @@ RUN apt-get install --no-install-recommends -y \
 # Install .NET Core SDK
 RUN wget "https://packages.microsoft.com/config/ubuntu/$(lsb_release -rs)/packages-microsoft-prod.deb" -O /tmp/packages-microsoft-prod.deb; \
     dpkg -i /tmp/packages-microsoft-prod.deb; \
-    apt-get update -y
-
-RUN apt-get install --no-install-recommends -y \
-    dotnet-sdk-5.0
+    apt-get update -y; \
+    apt-get install --no-install-recommends -y dotnet-sdk-5.0
 
 # Install Node.js LTS
 #RUN curl -sL https://deb.nodesource.com/setup_lts.x | bash -; \
@@ -132,10 +135,10 @@ RUN curl -o- "https://raw.githubusercontent.com/nvm-sh/nvm/master/install.sh" | 
 #RUN code-server --install-extension ritwickdey.liveserver
 
 # APT & /tmp cleanup
-RUN sudo apt-get clean -y && sudo rm -rf /var/lib/apt/lists/*
-RUN sudo rm -rf /tmp/*
+RUN sudo apt-get clean -y && sudo rm -rf /var/lib/apt/lists/*; \
+    sudo rm -rf /tmp/*
 
-# FINAL
+# FINALIZE
 RUN sudo chown -R coder:coder /home/coder
 
 # EXPOSE CODE-SERVER APP PORT
