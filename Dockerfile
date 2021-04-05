@@ -5,17 +5,24 @@
 # Based on latest Ubuntu LTS
 FROM ubuntu:latest
 
-
-# Upgrade existing packages
-RUN apt-get update -y; \
-    apt-get install -f -y; \
-    apt-get upgrade -y
-
 # Workaround for tzdata during build time
 ENV TZ=Asia/Seoul
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
-# Install common packages
+# .NET prerequisites
+RUN apt-get update -y; \
+    apt-get install --no-install-recommends -y wget lsb-release dpkg ca-certificates; \
+    \
+    wget "https://packages.microsoft.com/config/ubuntu/$(lsb_release -rs)/packages-microsoft-prod.deb" -O /tmp/packages-microsoft-prod.deb \
+    && dpkg -i /tmp/packages-microsoft-prod.deb \
+    && rm -f /tmp/packages-microsoft-prod.deb
+
+# Update package source and upgrade existing packages
+RUN apt-get update -y; \
+    apt-get install -f -y; \
+    apt-get upgrade -y
+
+# Install common packages / Python packages / DPKG-dev
 RUN apt-get install --no-install-recommends -y \
     apt-utils \
     software-properties-common \
@@ -42,36 +49,20 @@ RUN apt-get install --no-install-recommends -y \
     util-linux \
     pkg-config \
     lsb-release \
-    tzdata
+    tzdata \
+    \
+    python3 \
+    python3-pip \
+    python3-setuptools \
+    python3-pylint-common \
+    \
+    dpkg-dev \
+    \
+    dotnet-sdk-5.0
 
 # Register locales
 RUN localedef -i en_US -c -f UTF-8 -A /usr/share/locale/locale.alias en_US.UTF-8; \
     localedef -i ko_KR -c -f UTF-8 -A /usr/share/locale/locale.alias ko_KR.UTF-8
-
-# Install Python
-RUN apt-get install --no-install-recommends -y \
-    python3 \
-    python3-dev \
-    python3-pip \
-    python3-setuptools \
-    python3-pylint-common
-
-# Install DPKG-dev
-RUN apt-get install --no-install-recommends -y \
-    dpkg-dev
-
-# Install .NET Core SDK
-RUN wget "https://packages.microsoft.com/config/ubuntu/$(lsb_release -rs)/packages-microsoft-prod.deb" -O /tmp/packages-microsoft-prod.deb; \
-    dpkg -i /tmp/packages-microsoft-prod.deb; \
-    apt-get update -y; \
-    apt-get install --no-install-recommends -y dotnet-sdk-5.0
-
-# Install Node.js LTS
-#RUN curl -sL https://deb.nodesource.com/setup_lts.x | bash -; \
-#    apt-get update -y
-
-#RUN apt-get install --no-install-recommends -y \
-#    nodejs
 
 # Install code-server
 RUN \
@@ -101,21 +92,23 @@ RUN chmod +x /usr/bin/entrypoint.sh
 # Setup code-server
 RUN addgroup --gid 1000 coder \
     && adduser --uid 1000 --ingroup coder --home /home/coder --shell /bin/bash --disabled-password --gecos "" coder \
+    && usermod -aG sudo coder \
     && echo "coder ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers.d/nopasswd
 USER coder:coder
 WORKDIR /home/coder
-RUN mkdir -p ~/projects
 
-ENV LANG=ko_KR.utf8
+ENV LANG=ko_KR.utf8 \
+    \
+    DOTNET_CLI_TELEMETRY_OPTOUT=1 \
+    DISABLE_TELEMETRY=true \
+    PATH="${PATH}:/usr/share/dotnet" \
+    \
+    CODE_DATA="/home/coder/.local/share/code-server"
+ENV CODE_USER="${CODE_DATA}/User" \
+    CODE_EXTENSIONS="${CODE_DATA}/extensions"
 
-ENV DOTNET_CLI_TELEMETRY_OPTOUT=1
-ENV DISABLE_TELEMETRY=true
-ENV PATH="${PATH}:/usr/share/dotnet"
-
-ENV CODE_DATA="/home/coder/.local/share/code-server"
-ENV CODE_USER="${CODE_DATA}/User"
-ENV CODE_EXTENSIONS="${CODE_DATA}/extensions"
-RUN mkdir -p ${CODE_USER}
+RUN mkdir -p ~/projects; \
+    mkdir -p ${CODE_USER}
 COPY --chown=coder:coder settings.json ${CODE_USER}/
 
 # Install Node.js LTS using NVM
@@ -134,12 +127,10 @@ RUN curl -o- "https://raw.githubusercontent.com/nvm-sh/nvm/master/install.sh" | 
 #RUN code-server --install-extension eamodio.gitlens
 #RUN code-server --install-extension ritwickdey.liveserver
 
-# APT & /tmp cleanup
+# APT & /tmp cleanup & Finalize
 RUN sudo apt-get clean -y && sudo rm -rf /var/lib/apt/lists/*; \
-    sudo rm -rf /tmp/*
-
-# FINALIZE
-RUN sudo chown -R coder:coder /home/coder
+    sudo rm -rf /tmp/*; \
+    sudo chown -R coder:coder /home/coder
 
 # EXPOSE CODE-SERVER APP PORT
 EXPOSE 8080
@@ -147,7 +138,7 @@ EXPOSE 8080
 # EXPOSE DEVELOPMENT SERVER PORTS RUNNING IN CONTAINER
 EXPOSE 30000-30005
 
-
+# Entrypoint
 ENTRYPOINT ["/usr/bin/entrypoint.sh",        \
                 "/home/coder/projects",      \
                 "--bind-addr=0.0.0.0:8080",  \
