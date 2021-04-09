@@ -40,6 +40,7 @@ RUN apt-get install --no-install-recommends -y \
     build-essential \
     gcc-10 \
     cpp-10 \
+    g++-10 \
     gpg \
     gpg-agent \
     apt-transport-https \
